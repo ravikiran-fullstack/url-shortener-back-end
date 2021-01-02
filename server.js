@@ -46,7 +46,8 @@ app.post("/url", (req, res) => {
     shortUrl
       .save()
       .then((result) => {
-        res.send(result);
+        console.log(result);
+        res.send(`https://rk-url-shortener-back-end.herokuapp.com/${result.shortUrl}`);
       })
       .catch((err) => {
         console.log(err);
