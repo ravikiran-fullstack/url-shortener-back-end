@@ -20,7 +20,7 @@ const mongoURI = "mongodb+srv://ravi:test123@urlshortener.6jhak.mongodb.net/urld
 const connectToMongoDb = async () => {
   try{
     const result = await mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
-    app.listen(process.env.PORT, '0.0.0.0');
+    app.listen(process.env.PORT || 8585, '0.0.0.0');
     console.log('Connected to MongoDB');
   } catch(err) {
     console.log(err);
@@ -51,9 +51,13 @@ app.get('/', (req, res) => {
   res.json({message: 'working'});
 });
 
+app.get('/favicon.ico', (req, res) => {
+  res.send();
+})
+
 // Route to show last few shortened urls along with original url and visit count
 app.get('/recent', (req, res) => {
-  console.log('req.ip',req.ip);
+  console.log('req.ip /recent',req.ip);
   ShortUrl.find().limit(5).sort({createdAt: 'desc'})
                     .then(result => {
                       //console.log(result);
@@ -63,8 +67,10 @@ app.get('/recent', (req, res) => {
 
 // Route to search for original url when shortened url is passed and also to update the visitCount 
 app.get('/:shortUrl', (req, res) => {
-  console.log('req.ip',req.ip);
+  
+  console.log('req.ip /shortUrl',req.ip);
   const shortURLParam = req.params.shortUrl;
+
   ShortUrl.find({shortUrl: shortURLParam})
                             .then(async result => {
                               if(result.length > 0){
