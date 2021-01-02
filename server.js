@@ -85,7 +85,8 @@ app.get("/:shortUrl", (req, res) => {
   ShortUrl.find({ shortUrl: shortURLParam })
     .then(async (result) => {
       if (result.length > 0) {
-        res.json(result[0].url);
+        //res.json(result[0].url);
+        res.status(302).redirect(result[0].url);
         let visitCount = result[0].visitCount + 1;
         await ShortUrl.updateOne(
           { shortUrl: shortURLParam },
