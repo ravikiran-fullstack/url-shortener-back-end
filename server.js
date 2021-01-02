@@ -20,7 +20,7 @@ const mongoURI = "mongodb+srv://ravi:test123@urlshortener.6jhak.mongodb.net/urld
 const connectToMongoDb = async () => {
   try{
     const result = await mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
-    app.listen(8585);
+    app.listen(process.env.PORT, '0.0.0.0');
     console.log('Connected to MongoDB');
   } catch(err) {
     console.log(err);
