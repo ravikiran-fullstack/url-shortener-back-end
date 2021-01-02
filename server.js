@@ -22,6 +22,7 @@ const connectToMongoDb = async () => {
 
 connectToMongoDb();
 
+// Route to post new url to be shortened 
 app.post('/url', (req,res) => {
   if(req.body.url === undefined || req.body.url === ''){
     res.status(400).json({message: "Url is undefined or empty"});
@@ -36,27 +37,34 @@ app.post('/url', (req,res) => {
   }
 });
 
+// Route to show home page 
 app.get('/', (req, res) => {
-  console.log('req received', req.params);
   res.json({message: 'working'});
 });
 
+// Route to show last few shortened urls along with original url and visit count
+app.get('/recent', (req, res) => {
+  ShortUrl.find().limit(5).sort({createdAt: 'desc'})
+                    .then(result => {
+                      console.log(result);
+                      res.json(result);
+                    }).catch(err => console.log(err));
+});
+
+// Route to search for original url when shortened url is passed and also to update the visitCount 
 app.get('/:shortUrl', (req, res) => {
-  console.log('req received with url', req.params.shortUrl);
   const shortURLParam = req.params.shortUrl;
   ShortUrl.find({shortUrl: shortURLParam})
-                            .then(result => {
+                            .then(async result => {
                               if(result.length > 0){
                                 res.json(result[0].url);
+                                let visitCount = result[0].visitCount + 1;
+                                await ShortUrl.updateOne({shortUrl: shortURLParam}, {visitCount: visitCount});
                               } else {
                                 throw new Error('URL not stored in the db');
-                                //res.json({message: 'url not found'})
                               }
                             }).catch(err => {
                               console.log(err);
                               res.json({message: 'url not found'})
                             });
-  
-  // console.log(result);
-  // res.json({message: result});
 })
