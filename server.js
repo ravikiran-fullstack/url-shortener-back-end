@@ -47,7 +47,7 @@ app.post("/url", (req, res) => {
       .save()
       .then((result) => {
         console.log(result);
-        res.json(`http://www.u-bit.me/${result.shortUrl}`);
+        res.json({shortenedUrl: `u-bit.me/${result.shortUrl}`, originalUrl: result.url});
       })
       .catch((err) => {
         console.log(err);
