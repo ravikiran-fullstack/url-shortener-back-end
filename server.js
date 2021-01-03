@@ -47,7 +47,7 @@ app.post("/url", (req, res) => {
       .save()
       .then((result) => {
         console.log(result);
-        res.json(`https://rk-url-shortener-back-end.herokuapp.com/${result.shortUrl}`);
+        res.json(`http://www.u-bit.me/${result.shortUrl}`);
       })
       .catch((err) => {
         console.log(err);
