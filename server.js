@@ -1,12 +1,16 @@
-const path = require('path');
+const path = require("path");
 
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const bcrypt = require('bcrypt');
 
 const ShortUrl = require("./models/shortUrls");
 const generateURLId = require("./utils");
+
+const RegisterUser = require("./models/registerUser");
+// const registerRoutes = require('./routes/register');
 
 const app = express();
 
@@ -17,7 +21,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-const mongoURI ="mongodb+srv://ravi:test123@urlshortener.6jhak.mongodb.net/urldb?retryWrites=true&w=majority";
+const mongoURI =
+  "mongodb+srv://ravi:test123@urlshortener.6jhak.mongodb.net/urldb?retryWrites=true&w=majority";
 
 const connectToMongoDb = async () => {
   try {
@@ -33,14 +38,73 @@ const connectToMongoDb = async () => {
   }
 };
 
-function updateCounter(){
-
-}
+function updateCounter() {}
 
 connectToMongoDb();
 
-app.get('/test',(req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'views', 'page-not-found.html'));
+app.get('/registerPage', (req, res) => {
+  res.json({message: 'registerPage'});
+});
+
+app.post('/register',async (req, res) => {
+  console.log('/register',req.body);
+
+  if(req.body.username === undefined || req.body.username === '' || req.body.password === undefined || req.body.password === '' ){
+    res.status(400).json({message: "Enter valid credentials"});
+  } else {
+
+    const user = await RegisterUser.findOne({username: req.body.username});
+
+    if(user){
+      res.status(409).json({message: "Username already exists"});
+    } else {
+      try{
+        const hash = await bcrypt.hash(req.body.password, 10);
+        console.log(hash, req.body.password);
+        const registerUser = new RegisterUser({
+          username: req.body.username,
+          password: hash
+        });
+    
+        registerUser.save()
+                      .then(result => res.json(result))
+                      .catch(err => console.log(err));
+      } catch(err){
+        console.error('error while hashing or storing user info into db',err);
+      } 
+    }      
+  }
+});
+
+app.get('/loginPage', (req, res) => {
+  res.json({message: 'loginPage'});
+});
+
+app.post('/login', async (req, res) => {
+  console.log('/login',req.body);
+  if(req.body.username === undefined || req.body.username === '' || req.body.password === undefined || req.body.password === '' ){
+    res.status(400).json({message: "Enter valid credentials"});
+  } else{
+    const user = await RegisterUser.findOne({ username: req.body.username });
+    if(!user){
+      res.status(400).json({message: "Invalid username or password"});
+    } else {
+      console.log(user);
+      const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
+      if(isPasswordValid){
+        res.json({username: user.username});
+      } else {
+        res.status(400).json({message: "Invalid username or password"});
+      }
+    }
+  }
+  //res.json({message: 'login'});
+});
+
+app.get("/test", (req, res) => {
+  res
+    .status(404)
+    .sendFile(path.join(__dirname, "views", "page-not-found.html"));
 });
 
 // Route to post new url to be shortened
@@ -58,18 +122,15 @@ app.post("/url", (req, res) => {
       .save()
       .then((result) => {
         //console.log(result);
-        res.json({shortenedUrl: `rk-url-shortener-back-end.herokuapp.com/${result.shortUrl}`, originalUrl: result.url});
+        res.json({
+          shortenedUrl: `rk-url-shortener-back-end.herokuapp.com/${result.shortUrl}`,
+          originalUrl: result.url,
+        });
       })
       .catch((err) => {
         console.log(err);
       });
   }
-});
-
-// Route to show home page
-app.get("/", (req, res) => {
-  //console.log("req.ip", req.ip);
-  res.json({ message: "working" });
 });
 
 app.get("/favicon.ico", (req, res) => {
@@ -78,7 +139,7 @@ app.get("/favicon.ico", (req, res) => {
 
 // Route to show last few shortened urls along with original url and visit count
 app.get("/recent", (req, res) => {
- // console.log("req.ip /recent", req.ip);
+  // console.log("req.ip /recent", req.ip);
   ShortUrl.find()
     .limit(5)
     .sort({ createdAt: "desc" })
@@ -112,4 +173,10 @@ app.get("/:shortUrl", (req, res) => {
       console.log(err);
       res.json({ message: "url not found" });
     });
+});
+
+// Route to show home page
+app.get("/", (req, res) => {
+  //console.log("req.ip", req.ip);
+  res.json({ message: "working" });
 });
