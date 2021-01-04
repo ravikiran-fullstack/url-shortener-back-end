@@ -1,3 +1,5 @@
+const path = require('path');
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -24,13 +26,22 @@ const connectToMongoDb = async () => {
       useUnifiedTopology: true,
     });
     app.listen(process.env.PORT || 8585, "0.0.0.0");
+
     console.log("Connected to MongoDB");
   } catch (err) {
     console.log(err);
   }
 };
 
+function updateCounter(){
+
+}
+
 connectToMongoDb();
+
+app.get('/test',(req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'views', 'page-not-found.html'));
+});
 
 // Route to post new url to be shortened
 app.post("/url", (req, res) => {
@@ -46,7 +57,7 @@ app.post("/url", (req, res) => {
     shortUrl
       .save()
       .then((result) => {
-        console.log(result);
+        //console.log(result);
         res.json({shortenedUrl: `u-bit.me/${result.shortUrl}`, originalUrl: result.url});
       })
       .catch((err) => {
@@ -57,7 +68,7 @@ app.post("/url", (req, res) => {
 
 // Route to show home page
 app.get("/", (req, res) => {
-  console.log("req.ip", req.ip);
+  //console.log("req.ip", req.ip);
   res.json({ message: "working" });
 });
 
@@ -67,7 +78,7 @@ app.get("/favicon.ico", (req, res) => {
 
 // Route to show last few shortened urls along with original url and visit count
 app.get("/recent", (req, res) => {
-  console.log("req.ip /recent", req.ip);
+ // console.log("req.ip /recent", req.ip);
   ShortUrl.find()
     .limit(5)
     .sort({ createdAt: "desc" })
@@ -80,7 +91,7 @@ app.get("/recent", (req, res) => {
 
 // Route to search for original url when shortened url is passed and also to update the visitCount
 app.get("/:shortUrl", (req, res) => {
-  console.log("req.ip /shortUrl", req.ip);
+  //console.log("req.ip /shortUrl", req.ip);
   const shortURLParam = req.params.shortUrl;
 
   ShortUrl.find({ shortUrl: shortURLParam })

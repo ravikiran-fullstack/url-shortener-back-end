@@ -1,3 +1,5 @@
+const base64 = require('base-64');
+
 function generateURLId() {
   const urlIdLength = 5;
   var result           = '';
@@ -7,6 +9,14 @@ function generateURLId() {
      result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
+}
+
+function generateUrlIdUsingBtoa(){
+  const timestamp = new Date().getTime().toString();
+  // console.log(timestamp);
+  const id = base64.encode(timestamp);
+  console.log(timestamp, id);
+  return id;
 }
 
 module.exports = generateURLId;
