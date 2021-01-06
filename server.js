@@ -5,8 +5,17 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require('bcrypt');
-var validUrl = require('valid-url');
+const validUrl = require('valid-url');
 const {nanoid} = require('nanoid');
+
+
+const nodemailer = require('nodemailer');//importing node mailer
+const {google} = require('googleapis');
+const {OAuth2}  = google.auth;
+const CLIENT_ID = '670721118119-i4qsv5umebfaa956uufhet4ksb7r6ghl.apps.googleusercontent.com';
+const CLIENT_SECRET = '_NKRPaXMry4xFRkEpS12NzdF';
+const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
+const REFRESH_TOKEN = '1//04EEmM8YGxR8kCgYIARAAGAQSNwF-L9Irez7PZrHoGVVcyKfMB3ZSo3FFKKFw5p2tQmTWwkAuURMghsnXIFVJuBp4Y9_LaZI1daA';
 
 const ShortUrl = require("./models/shortUrls");
 const generateURLId = require("./utils");
@@ -116,12 +125,72 @@ app.post('/resetPasswordWithEmail', async (req, res) => {
   } else{
     const user = await RegisterUser.findOne({ username: req.body.username});
     if(!user){
-      res.status(400).json({message: "User doesn't  exists"});
+      return res.status(400).json({message: "User doesn't  exists"});
     } else {
-      res.status(200).json({message: "Check your email for reset options"});
+      //As the user exists, 
+      // Create a random 10 digit number and store it in the user document as an object with values {key: randomNumber, username: userEmail}
+      // Create a link the reset/:email/:randomnumber route on the backend and send it to the user email using nodemailer 
+
+      const oAuth2Client = new OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+      oAuth2Client.setCredentials({refresh_token: REFRESH_TOKEN});
+      const accessToken = await oAuth2Client.getAccessToken();
+
+
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          type: 'OAuth2',
+          user: "ravikiransjce.code@gmail.com", //replace with your email
+          clientId: CLIENT_ID,
+          clientSecret: CLIENT_SECRET,
+          refreshToken: REFRESH_TOKEN,
+          accessToken: accessToken
+        },
+        tls : { rejectUnauthorized: false }
+      });
+
+    //   const transporter = nodemailer.createTransport({
+    //     host: 'smtp.gmail.com',
+    //     port: 465,
+    //     secure: true,
+    //     auth: {
+    //         user: 'ravikiransjce.code@gmail.com',
+    //         pass: 'password'
+    //     },
+    //     // === add this === //
+    //     tls : { rejectUnauthorized: false }
+    // });
+
+      const mailOptions = {
+        from: "<ravikriansjce.code@gmail.com>", //replace with your email
+        to: `${user.username}`, //replace with your email
+        subject: `Contact name: Ravikiran`,
+        html: `<h1>Contact details</h1>
+          <h2> name:test </h2><br>
+          <h2> email:testEmail </h2><br>
+          <h2> phonenumber:123 </h2><br>
+          <h2> message:It works </h2><br>`,
+      };
+
+      transporter.sendMail(mailOptions, function(error, info){
+        if (error) {
+          console.log(error);
+          return res.send('error') // if error occurs send error as response to client
+        }
+        else {
+          console.log('Email sent: ' + info.response);
+          return res.send('Sent Successfully')//if mail is sent successfully send Sent successfully as response
+        }
+      });
+     // return res.status(200).json({message: "Check your email for reset options"});
     }
   }  
 });
+
+app.post('/reset', async (req, res) => {
+  // req.body should have valid password, email and random number generated in the previous step
+  console.log(req.body);
+})
 
 // Route to post new url to be shortened
 app.post("/url",(req, res) => {
