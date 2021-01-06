@@ -5,6 +5,8 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require('bcrypt');
+var validUrl = require('valid-url');
+const {nanoid} = require('nanoid');
 
 const ShortUrl = require("./models/shortUrls");
 const generateURLId = require("./utils");
@@ -67,7 +69,7 @@ app.post('/register',async (req, res) => {
         });
     
         registerUser.save()
-                      .then(result => res.json(result))
+                      .then(result => res.json({username: result.username}))
                       .catch(err => console.log(err));
       } catch(err){
         console.error('error while hashing or storing user info into db',err);
@@ -107,15 +109,34 @@ app.get("/test", (req, res) => {
     .sendFile(path.join(__dirname, "views", "page-not-found.html"));
 });
 
+app.post('/resetPasswordWithEmail', async (req, res) => { 
+  
+  if(req.body.username === undefined || req.body.username === ''){
+    res.status(400).json({message: "Enter valid email ID"});
+  } else{
+    const user = await RegisterUser.findOne({ username: req.body.username});
+    if(!user){
+      res.status(400).json({message: "User doesn't  exists"});
+    } else {
+      res.status(200).json({message: "Check your email for reset options"});
+    }
+  }  
+});
+
 // Route to post new url to be shortened
-app.post("/url", (req, res) => {
+app.post("/url",(req, res) => {
   console.log("req.ip", req.ip);
   if (req.body.url === undefined || req.body.url === "") {
     res.status(400).json({ message: "Url is undefined or empty" });
   } else {
+
+    if (!validUrl.isUri(req.body.url)){
+      return res.status(404).json({message: "Url does not exists"});
+    }
+
     const shortUrl = new ShortUrl({
       url: req.body.url,
-      shortUrl: generateURLId(),
+      shortUrl: nanoid(5),//generateURLId(),
       visitCount: 0,
     });
     shortUrl
