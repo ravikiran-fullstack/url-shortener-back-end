@@ -1,4 +1,5 @@
 require('dotenv').config()        // process.env
+//const config = require('./config.js');
 const path = require("path");
 
 const express = require("express");
@@ -8,7 +9,6 @@ const cors = require("cors");
 const bcrypt = require('bcrypt');
 const validUrl = require('valid-url');
 const {nanoid} = require('nanoid');
-
 
 
 const nodemailer = require('nodemailer');//importing node mailer
@@ -45,7 +45,7 @@ const connectToMongoDb = async () => {
       useUnifiedTopology: true,
     });
     app.listen(process.env.PORT || 8585, "0.0.0.0");
-
+    console.log(`Back end server running on ${process.env.PORT}`);
     console.log("Connected to MongoDB");
   } catch (err) {
     console.log(err);
