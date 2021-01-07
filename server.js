@@ -15,11 +15,10 @@ const nodemailer = require('nodemailer');//importing node mailer
 const {google} = require('googleapis');
 const {OAuth2}  = google.auth;
 console.log('process.env',process.env.CLIENT_ID);
-const CLIENT_ID = `${process.env.CLIENT_ID}`//'670721118119-i4qsv5umebfaa956uufhet4ksb7r6ghl.apps.googleusercontent.com';
-//console.log(CLIENT_ID);
-const CLIENT_SECRET = `${process.env.CLIENT_SECRET}`;//'_NKRPaXMry4xFRkEpS12NzdF';
-const REDIRECT_URI = `${process.env.REDIRECT_URI}`;//'https://developers.google.com/oauthplayground';
-const REFRESH_TOKEN = `${process.env.REFRESH_TOKEN}`;//'1//04EEmM8YGxR8kCgYIARAAGAQSNwF-L9Irez7PZrHoGVVcyKfMB3ZSo3FFKKFw5p2tQmTWwkAuURMghsnXIFVJuBp4Y9_LaZI1daA';
+const CLIENT_ID = `${process.env.CLIENT_ID}`;
+const CLIENT_SECRET = `${process.env.CLIENT_SECRET}`;
+const REDIRECT_URI = `${process.env.REDIRECT_URI}`;
+const REFRESH_TOKEN = `${process.env.REFRESH_TOKEN}`;
 
 const ShortUrl = require("./models/shortUrls");
 const generateURLId = require("./utils");
@@ -37,7 +36,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-const mongoURI = `${process.env.mongoURI}`;//"mongodb+srv://ravi:test123@urlshortener.6jhak.mongodb.net/urldb?retryWrites=true&w=majority";
+const mongoURI = `${process.env.mongoURI}`;
 
 const connectToMongoDb = async () => {
   try {
