@@ -1,3 +1,4 @@
+require('dotenv').config()        // process.env
 const path = require("path");
 
 const express = require("express");
@@ -9,13 +10,16 @@ const validUrl = require('valid-url');
 const {nanoid} = require('nanoid');
 
 
+
 const nodemailer = require('nodemailer');//importing node mailer
 const {google} = require('googleapis');
 const {OAuth2}  = google.auth;
-const CLIENT_ID = '670721118119-i4qsv5umebfaa956uufhet4ksb7r6ghl.apps.googleusercontent.com';
-const CLIENT_SECRET = '_NKRPaXMry4xFRkEpS12NzdF';
-const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
-const REFRESH_TOKEN = '1//04EEmM8YGxR8kCgYIARAAGAQSNwF-L9Irez7PZrHoGVVcyKfMB3ZSo3FFKKFw5p2tQmTWwkAuURMghsnXIFVJuBp4Y9_LaZI1daA';
+console.log('process.env',process.env.CLIENT_ID);
+const CLIENT_ID = `${process.env.CLIENT_ID}`//'670721118119-i4qsv5umebfaa956uufhet4ksb7r6ghl.apps.googleusercontent.com';
+//console.log(CLIENT_ID);
+const CLIENT_SECRET = `${process.env.CLIENT_SECRET}`;//'_NKRPaXMry4xFRkEpS12NzdF';
+const REDIRECT_URI = `${process.env.REDIRECT_URI}`;//'https://developers.google.com/oauthplayground';
+const REFRESH_TOKEN = `${process.env.REFRESH_TOKEN}`;//'1//04EEmM8YGxR8kCgYIARAAGAQSNwF-L9Irez7PZrHoGVVcyKfMB3ZSo3FFKKFw5p2tQmTWwkAuURMghsnXIFVJuBp4Y9_LaZI1daA';
 
 const ShortUrl = require("./models/shortUrls");
 const generateURLId = require("./utils");
@@ -33,8 +37,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-const mongoURI =
-  "mongodb+srv://ravi:test123@urlshortener.6jhak.mongodb.net/urldb?retryWrites=true&w=majority";
+const mongoURI = `${process.env.mongoURI}`;//"mongodb+srv://ravi:test123@urlshortener.6jhak.mongodb.net/urldb?retryWrites=true&w=majority";
 
 const connectToMongoDb = async () => {
   try {
@@ -139,13 +142,13 @@ app.post('/confirmEmailResetPassword', async (req, res) => {
       
       await userPasswordResetObj.save();
 
-      const resetPasswordLink = `http://localhost:8585/reset/${user.username}/${randomKey}`;
+      const resetPasswordLink = `${process.env.backEndUrl}/reset/${user.username}/${randomKey}`;
+      console.log('resetPasswordLink',resetPasswordLink)
       // Create a link the reset/:email/:randomnumber route on the backend and send it to the user email using nodemailer 
 
       const oAuth2Client = new OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
       oAuth2Client.setCredentials({refresh_token: REFRESH_TOKEN});
       const accessToken = await oAuth2Client.getAccessToken();
-
 
       const transporter = nodemailer.createTransport({
         service: "gmail",
@@ -193,9 +196,9 @@ app.get('/reset/:username/:randomKey', async (req, res) => {
   console.log(result);
   const latestResetObj = result[0];
   if(latestResetObj.expirationDate > new Date()){
-    res.status(302).redirect(`http://localhost:5501/resetPassword.html?username=${latestResetObj.username}&key=${latestResetObj.randomKey}`);
+    res.status(302).redirect(`${frontEndUrl}/resetPassword.html?username=${latestResetObj.username}&key=${latestResetObj.randomKey}`);
   } else {
-    res.status(302).redirect('http://localhost:5501/confirmEmail.html');
+    res.status(302).redirect(`${frontEndUrl}/confirmEmail.html`);
   }
 });
 
@@ -237,7 +240,7 @@ app.post("/url",(req, res) => {
       .then((result) => {
         //console.log(result);
         res.json({
-          shortenedUrl: `rk-url-shortener-back-end.herokuapp.com/${result.shortUrl}`,
+          shortenedUrl: `${process.env.backEndUrl}/${result.shortUrl}`,
           originalUrl: result.url,
         });
       })
