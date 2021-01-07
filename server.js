@@ -9,6 +9,8 @@ const cors = require("cors");
 const bcrypt = require('bcrypt');
 const validUrl = require('valid-url');
 const {nanoid} = require('nanoid');
+const jwt = require('jsonwebtoken');
+
 
 
 const nodemailer = require('nodemailer');//importing node mailer
@@ -103,10 +105,14 @@ app.post('/login', async (req, res) => {
     if(!user){
       res.status(400).json({message: "Invalid username or password"});
     } else {
-      console.log(user);
+      //console.log(user);
       const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
       if(isPasswordValid){
-        res.json({username: user.username});
+        const accessToken = jwt.sign({username: user.username}, process.env.JWT_SECRET, {algorithm: "HS256", expiresIn: process.env.JWT_SESSION_EXPIRATION_TIME});
+        console.log('token',accessToken);
+        res.cookie("jwt", accessToken, {secure: true, httpOnly: true})
+        // res.setHeader({'accessToken': accessToken});
+        res.json({username: user.username, accessToken});
       } else {
         res.status(400).json({message: "Invalid username or password"});
       }
