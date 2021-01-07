@@ -21,6 +21,7 @@ const ShortUrl = require("./models/shortUrls");
 const generateURLId = require("./utils");
 
 const RegisterUser = require("./models/registerUser");
+const UserPasswordReset = require('./models/userPasswordReset');
 // const registerRoutes = require('./routes/register');
 
 const app = express();
@@ -118,7 +119,7 @@ app.get("/test", (req, res) => {
     .sendFile(path.join(__dirname, "views", "page-not-found.html"));
 });
 
-app.post('/resetPasswordWithEmail', async (req, res) => { 
+app.post('/confirmEmailResetPassword', async (req, res) => { 
   
   if(req.body.username === undefined || req.body.username === ''){
     res.status(400).json({message: "Enter valid email ID"});
@@ -129,6 +130,16 @@ app.post('/resetPasswordWithEmail', async (req, res) => {
     } else {
       //As the user exists, 
       // Create a random 10 digit number and store it in the user document as an object with values {key: randomNumber, username: userEmail}
+      const randomKey = nanoid(10).toLowerCase();
+      const userPasswordResetObj = new UserPasswordReset({
+          randomKey: randomKey,
+          username: user.username,
+          expirationDate: addMinutes(new Date(), 10)
+      });
+      
+      await userPasswordResetObj.save();
+
+      const resetPasswordLink = `http://localhost:8585/reset/${user.username}/${randomKey}`;
       // Create a link the reset/:email/:randomnumber route on the backend and send it to the user email using nodemailer 
 
       const oAuth2Client = new OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
@@ -149,27 +160,12 @@ app.post('/resetPasswordWithEmail', async (req, res) => {
         tls : { rejectUnauthorized: false }
       });
 
-    //   const transporter = nodemailer.createTransport({
-    //     host: 'smtp.gmail.com',
-    //     port: 465,
-    //     secure: true,
-    //     auth: {
-    //         user: 'ravikiransjce.code@gmail.com',
-    //         pass: 'password'
-    //     },
-    //     // === add this === //
-    //     tls : { rejectUnauthorized: false }
-    // });
-
       const mailOptions = {
         from: "<ravikriansjce.code@gmail.com>", //replace with your email
         to: `${user.username}`, //replace with your email
-        subject: `Contact name: Ravikiran`,
-        html: `<h1>Contact details</h1>
-          <h2> name:test </h2><br>
-          <h2> email:testEmail </h2><br>
-          <h2> phonenumber:123 </h2><br>
-          <h2> message:It works </h2><br>`,
+        subject: `PASSWORD RESET`,
+        html: `<p> Please click the link to reset your password or copy paste ${resetPasswordLink} in a browser window</p><br>
+                <a href=${resetPasswordLink}></a>`,
       };
 
       transporter.sendMail(mailOptions, function(error, info){
@@ -187,10 +183,38 @@ app.post('/resetPasswordWithEmail', async (req, res) => {
   }  
 });
 
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes*60000);
+}
+
+app.get('/reset/:username/:randomKey', async (req, res) => {
+  console.log('req.params ',req.params);
+  const result = await UserPasswordReset.find({username: req.params.username}).sort({createdAt: "desc"});
+  console.log(result);
+  const latestResetObj = result[0];
+  if(latestResetObj.expirationDate > new Date()){
+    res.status(302).redirect(`http://localhost:5501/resetPassword.html?username=${latestResetObj.username}&key=${latestResetObj.randomKey}`);
+  } else {
+    res.status(302).redirect('http://localhost:5501/confirmEmail.html');
+  }
+});
+
 app.post('/reset', async (req, res) => {
   // req.body should have valid password, email and random number generated in the previous step
   console.log(req.body);
 })
+
+app.post('/resetPassword', async (req, res) => {
+  const result = await UserPasswordReset.find({username: req.body.username}).sort({createdAt: "desc"});
+  const latestResetObj = result[0];
+  console.log(latestResetObj, req.body);
+  if(latestResetObj.expirationDate > new Date()){
+    const hash = await bcrypt.hash(req.body.password, 10);
+    const dbResult = await RegisterUser.updateOne({username: latestResetObj.username}, {password: hash});
+    console.log(dbResult);
+    res.send(dbResult);
+  } 
+});
 
 // Route to post new url to be shortened
 app.post("/url",(req, res) => {
