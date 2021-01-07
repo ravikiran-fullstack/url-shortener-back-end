@@ -196,9 +196,9 @@ app.get('/reset/:username/:randomKey', async (req, res) => {
   console.log(result);
   const latestResetObj = result[0];
   if(latestResetObj.expirationDate > new Date()){
-    res.status(302).redirect(`${frontEndUrl}/resetPassword.html?username=${latestResetObj.username}&key=${latestResetObj.randomKey}`);
+    res.status(302).redirect(`${process.env.frontEndUrl}/resetPassword.html?username=${latestResetObj.username}&key=${latestResetObj.randomKey}`);
   } else {
-    res.status(302).redirect(`${frontEndUrl}/confirmEmail.html`);
+    res.status(302).redirect(`${process.env.frontEndUrl}/confirmEmail.html`);
   }
 });
 
