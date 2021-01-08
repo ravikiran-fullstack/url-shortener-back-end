@@ -121,11 +121,11 @@ app.post('/login', async (req, res) => {
   //res.json({message: 'login'});
 });
 
-app.get("/test", (req, res) => {
-  res
-    .status(404)
-    .sendFile(path.join(__dirname, "views", "page-not-found.html"));
-});
+// app.get("/test", (req, res) => {
+//   res
+//     .status(404)
+//     .sendFile(path.join(__dirname, "views", "page-not-found.html"));
+// });
 
 app.post('/confirmEmailResetPassword', async (req, res) => { 
   
