@@ -108,11 +108,11 @@ app.post('/login', async (req, res) => {
       //console.log(user);
       const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
       if(isPasswordValid){
-        const accessToken = jwt.sign({username: user.username}, process.env.JWT_SECRET, {algorithm: "HS256", expiresIn: process.env.JWT_SESSION_EXPIRATION_TIME});
-        console.log('token',accessToken);
-        res.cookie("jwt", accessToken, {secure: true, httpOnly: true})
+        const token = jwt.sign({username: user.username}, process.env.JWT_SECRET, {algorithm: "HS256", expiresIn: process.env.JWT_SESSION_EXPIRATION_TIME});
+        console.log('token',token);
+        //res.cookie("jwt", token, {secure: true, httpOnly: true})
         // res.setHeader({'accessToken': accessToken});
-        res.json({username: user.username, accessToken});
+        res.json({username: user.username, token});
       } else {
         res.status(400).json({message: "Invalid username or password"});
       }
@@ -179,11 +179,11 @@ app.post('/confirmEmailResetPassword', async (req, res) => {
       transporter.sendMail(mailOptions, function(error, info){
         if (error) {
           console.log(error);
-          return res.send('error') // if error occurs send error as response to client
+          return res.json({message: "User doesn't  exists"}) // if error occurs send error as response to client
         }
         else {
           console.log('Email sent: ' + info.response);
-          return res.send('Sent Successfully')//if mail is sent successfully send Sent successfully as response
+          return res.json({message:"Sent Successfully"})//if mail is sent successfully send Sent successfully as response
         }
       });
      // return res.status(200).json({message: "Check your email for reset options"});
@@ -219,8 +219,8 @@ app.post('/resetPassword', async (req, res) => {
   if(latestResetObj.expirationDate > new Date()){
     const hash = await bcrypt.hash(req.body.password, 10);
     const dbResult = await RegisterUser.updateOne({username: latestResetObj.username}, {password: hash});
-    console.log(dbResult);
-    res.send(dbResult);
+    //console.log(dbResult);
+    res.json({message: "Password reset successfully", username: latestResetObj.username});
   } 
 });
 
