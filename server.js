@@ -267,8 +267,8 @@ app.get("/favicon.ico", (req, res) => {
 });
 
 // Route to show last few shortened urls along with original url and visit count
-app.get("/recent",authenticateToken, (req, res) => {
-  const username = req.body.username; 
+app.get("/recent/:username",authenticateToken, (req, res) => {
+  const username = req.params.username; 
   if(username === undefined || req.body.username === ''){
     res.status(400).json({message: "Invalid credentials"});
   } else {
