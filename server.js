@@ -226,7 +226,7 @@ function authenticateToken(req, res, next) {
   
   jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
     if (err) {
-      return res.sendStatus(403)
+      return res.sendStatus(403).redirect('/login.html');
     } else {
       console.log(payload);
       next() // pass the execution off to whatever request the client intended
@@ -304,5 +304,21 @@ app.get("/:shortUrl", (req, res) => {
 
 // Route to show home page
 app.get("/", (req, res) => {
-  res.json({ message: "working" });
+  res.redirect(`${process.env.frontEndUrl}/login.html`);
+});
+
+app.post('/authenticateSession', (req, res) => {
+  const authHeader = req.headers['authorization']
+  const token = authHeader && authHeader.split(' ')[1];
+  console.log('token', token);
+  if (token == null) return res.sendStatus(401) // if there isn't any token
+  
+  jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
+    if (err) {
+      return res.sendStatus(403).redirect('/login.html');
+    } else {
+      console.log(payload);
+      res.status(200).send(); // pass the execution off to whatever request the client intended
+    }
+  })
 });
