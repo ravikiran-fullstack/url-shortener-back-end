@@ -4,6 +4,7 @@ const path = require("path");
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const cookieParser = require('cookie-parser')
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require('bcrypt');
@@ -37,6 +38,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 const mongoURI = `${process.env.mongoURI}`;
 
@@ -57,11 +59,7 @@ const connectToMongoDb = async () => {
 function updateCounter() {}
 
 connectToMongoDb();
-
-app.get('/registerPage', (req, res) => {
-  res.json({message: 'registerPage'});
-});
-
+ 
 app.post('/register',async (req, res) => {
   console.log('/register',req.body);
 
@@ -90,35 +88,6 @@ app.post('/register',async (req, res) => {
       } 
     }      
   }
-});
-
-app.get('/loginPage', (req, res) => {
-  res.json({message: 'loginPage'});
-});
-
-app.post('/login', async (req, res) => {
-  console.log('/login',req.body);
-  if(req.body.username === undefined || req.body.username === '' || req.body.password === undefined || req.body.password === '' ){
-    res.status(400).json({message: "Enter valid credentials"});
-  } else{
-    const user = await RegisterUser.findOne({ username: req.body.username });
-    if(!user){
-      res.status(400).json({message: "Invalid username or password"});
-    } else {
-      //console.log(user);
-      const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
-      if(isPasswordValid){
-        const token = jwt.sign({username: user.username}, process.env.JWT_SECRET, {algorithm: "HS256", expiresIn: process.env.JWT_SESSION_EXPIRATION_TIME});
-        console.log('token',token);
-        //res.cookie("jwt", token, {secure: true, httpOnly: true})
-        // res.setHeader({'accessToken': accessToken});
-        res.json({username: user.username, token});
-      } else {
-        res.status(400).json({message: "Invalid username or password"});
-      }
-    }
-  }
-  //res.json({message: 'login'});
 });
 
 // app.get("/test", (req, res) => {
@@ -219,14 +188,54 @@ app.post('/resetPassword', async (req, res) => {
   if(latestResetObj.expirationDate > new Date()){
     const hash = await bcrypt.hash(req.body.password, 10);
     const dbResult = await RegisterUser.updateOne({username: latestResetObj.username}, {password: hash});
-    //console.log(dbResult);
     res.json({message: "Password reset successfully", username: latestResetObj.username});
   } 
 });
 
+app.post('/login', async (req, res) => {
+  console.log('/login',req.body);
+  if(req.body.username === undefined || req.body.username === '' || req.body.password === undefined || req.body.password === '' ){
+    res.status(400).json({message: "Enter valid credentials"});
+  } else{
+    const user = await RegisterUser.findOne({ username: req.body.username });
+    if(!user){
+      res.status(400).json({message: "Invalid username or password"});
+    } else {
+      const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
+      if(isPasswordValid){
+        const token = jwt.sign({
+                        exp: Math.floor(Date.now() / 1000) + (60 * 60),
+                        data: user.username
+                      }, process.env.JWT_SECRET); //jwt.sign({username: user.username}, process.env.JWT_SECRET);
+        console.log('token',token);
+        //res.cookie("jwt", token, {secure: true, httpOnly: true})
+        // res.setHeader({'accessToken': accessToken});
+        res.json({username: user.username, token});
+      } else {
+        res.status(400).json({message: "Invalid username or password"});
+      }
+    }
+  }
+});
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization']
+  const token = authHeader && authHeader.split(' ')[1];
+  console.log('token', token);
+  if (token == null) return res.sendStatus(401) // if there isn't any token
+  
+  jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
+    if (err) {
+      return res.sendStatus(403)
+    } else {
+      console.log(payload);
+      next() // pass the execution off to whatever request the client intended
+    }
+  })
+}
+
 // Route to post new url to be shortened
-app.post("/url",(req, res) => {
-  console.log("req.ip", req.ip);
+app.post("/url",authenticateToken,(req, res) => {
   if (req.body.url === undefined || req.body.url === "") {
     res.status(400).json({ message: "Url is undefined or empty" });
   } else {
@@ -243,7 +252,6 @@ app.post("/url",(req, res) => {
     shortUrl
       .save()
       .then((result) => {
-        //console.log(result);
         res.json({
           shortenedUrl: `${process.env.backEndUrl}/${result.shortUrl}`,
           originalUrl: result.url,
@@ -260,13 +268,11 @@ app.get("/favicon.ico", (req, res) => {
 });
 
 // Route to show last few shortened urls along with original url and visit count
-app.get("/recent", (req, res) => {
-  // console.log("req.ip /recent", req.ip);
+app.get("/recent",authenticateToken, (req, res) => {
   ShortUrl.find()
     .limit(5)
     .sort({ createdAt: "desc" })
     .then((result) => {
-      //console.log(result);
       res.json(result);
     })
     .catch((err) => console.log(err));
@@ -274,7 +280,6 @@ app.get("/recent", (req, res) => {
 
 // Route to search for original url when shortened url is passed and also to update the visitCount
 app.get("/:shortUrl", (req, res) => {
-  //console.log("req.ip /shortUrl", req.ip);
   const shortURLParam = req.params.shortUrl;
 
   ShortUrl.find({ shortUrl: shortURLParam })
@@ -299,6 +304,5 @@ app.get("/:shortUrl", (req, res) => {
 
 // Route to show home page
 app.get("/", (req, res) => {
-  //console.log("req.ip", req.ip);
   res.json({ message: "working" });
 });
