@@ -318,7 +318,7 @@ app.post('/authenticateSession', (req, res) => {
       return res.sendStatus(403).redirect('/login.html');
     } else {
       console.log(payload);
-      res.status(200).send(); // pass the execution off to whatever request the client intended
+      res.status(200).send({message: "OK"}); // pass the execution off to whatever request the client intended
     }
   })
 });
