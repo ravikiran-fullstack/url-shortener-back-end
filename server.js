@@ -12,8 +12,6 @@ const validUrl = require('valid-url');
 const {nanoid} = require('nanoid');
 const jwt = require('jsonwebtoken');
 
-
-
 const nodemailer = require('nodemailer');//importing node mailer
 const {google} = require('googleapis');
 const {OAuth2}  = google.auth;
@@ -247,6 +245,7 @@ app.post("/url",authenticateToken,(req, res) => {
     const shortUrl = new ShortUrl({
       url: req.body.url,
       shortUrl: nanoid(5),//generateURLId(),
+      username: req.body.username,
       visitCount: 0,
     });
     shortUrl
@@ -269,6 +268,21 @@ app.get("/favicon.ico", (req, res) => {
 
 // Route to show last few shortened urls along with original url and visit count
 app.get("/recent",authenticateToken, (req, res) => {
+  const username = req.body.username; 
+  if(username === undefined || req.body.username === ''){
+    res.status(400).json({message: "Invalid credentials"});
+  } else {
+    ShortUrl.find({ username: username })
+    .limit(5)
+    .sort({ createdAt: "desc" })
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((err) => console.log(err));
+  }
+});
+
+app.get('/recentAll', authenticateToken, (req, res) => {
   ShortUrl.find()
     .limit(5)
     .sort({ createdAt: "desc" })
@@ -276,7 +290,7 @@ app.get("/recent",authenticateToken, (req, res) => {
       res.json(result);
     })
     .catch((err) => console.log(err));
-});
+})
 
 // Route to search for original url when shortened url is passed and also to update the visitCount
 app.get("/:shortUrl", (req, res) => {
@@ -322,3 +336,5 @@ app.post('/authenticateSession', (req, res) => {
     }
   })
 });
+
+
