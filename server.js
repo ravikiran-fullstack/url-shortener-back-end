@@ -227,6 +227,7 @@ function authenticateToken(req, res, next) {
       return res.sendStatus(403).redirect('/login.html');
     } else {
       console.log(payload);
+      req.local.username = payload.data;
       next() // pass the execution off to whatever request the client intended
     }
   })
@@ -242,10 +243,11 @@ app.post("/url",authenticateToken,(req, res) => {
       return res.status(404).json({message: "Url does not exists"});
     }
 
+    console.log('req.local.username', req.local.username);
     const shortUrl = new ShortUrl({
       url: req.body.url,
       shortUrl: nanoid(5),//generateURLId(),
-      username: req.body.username,
+      username: req.locals.username,
       visitCount: 0,
     });
     shortUrl
