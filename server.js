@@ -296,7 +296,7 @@ app.get('/recentAll', authenticateToken, (req, res) => {
 
 // Route to search for original url when shortened url is passed and also to update the visitCount
 app.get("/:shortUrl", (req, res) => {
-  console.log(':shortUrl', shortUrl);
+  console.log(':shortUrl', req.params.shortUrl);
   const shortURLParam = req.params.shortUrl;
 
   ShortUrl.find({ shortUrl: shortURLParam })
