@@ -12,8 +12,6 @@ const validUrl = require('valid-url');
 const {nanoid} = require('nanoid');
 const jwt = require('jsonwebtoken');
 
-
-
 const nodemailer = require('nodemailer');//importing node mailer
 const {google} = require('googleapis');
 const {OAuth2}  = google.auth;
@@ -229,6 +227,7 @@ function authenticateToken(req, res, next) {
       return res.sendStatus(403).redirect('/login.html');
     } else {
       console.log(payload);
+      res.locals.username = payload.data;
       next() // pass the execution off to whatever request the client intended
     }
   })
@@ -244,9 +243,11 @@ app.post("/url",authenticateToken,(req, res) => {
       return res.status(404).json({message: "Url does not exists"});
     }
 
+    console.log('res.locals.username', res.locals.username);
     const shortUrl = new ShortUrl({
       url: req.body.url,
       shortUrl: nanoid(5),//generateURLId(),
+      username: res.locals.username,
       visitCount: 0,
     });
     shortUrl
@@ -268,7 +269,22 @@ app.get("/favicon.ico", (req, res) => {
 });
 
 // Route to show last few shortened urls along with original url and visit count
-app.get("/recent",authenticateToken, (req, res) => {
+app.get("/recent/:username",authenticateToken, (req, res) => {
+  const username = req.params.username; 
+  if(username === undefined || req.body.username === ''){
+    res.status(400).json({message: "Invalid credentials"});
+  } else {
+    ShortUrl.find({ username: username })
+    .limit(5)
+    .sort({ createdAt: "desc" })
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((err) => console.log(err));
+  }
+});
+
+app.get('/recentAll', authenticateToken, (req, res) => {
   ShortUrl.find()
     .limit(5)
     .sort({ createdAt: "desc" })
@@ -276,10 +292,11 @@ app.get("/recent",authenticateToken, (req, res) => {
       res.json(result);
     })
     .catch((err) => console.log(err));
-});
+})
 
 // Route to search for original url when shortened url is passed and also to update the visitCount
 app.get("/:shortUrl", (req, res) => {
+  console.log(':shortUrl', req.params.shortUrl);
   const shortURLParam = req.params.shortUrl;
 
   ShortUrl.find({ shortUrl: shortURLParam })
@@ -322,3 +339,5 @@ app.post('/authenticateSession', (req, res) => {
     }
   })
 });
+
+
