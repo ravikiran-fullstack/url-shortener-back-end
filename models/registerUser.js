@@ -9,6 +9,14 @@ const registerUserSchema = new Schema({
   password: {
     type: String, 
     required: true
+  },
+  emailVerified: {
+    type: Boolean,
+    required: true
+  },
+  verificationCode: {
+    type: String,
+    required: true
   }
 }, {timestamps: true});
 

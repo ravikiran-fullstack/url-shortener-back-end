@@ -73,14 +73,58 @@ app.post('/register',async (req, res) => {
       try{
         const hash = await bcrypt.hash(req.body.password, 10);
         console.log(hash, req.body.password);
+        const verificationCode = nanoid(10).toLowerCase();
+        
         const registerUser = new RegisterUser({
           username: req.body.username,
-          password: hash
+          password: hash,
+          emailVerified: false,
+          verificationCode: verificationCode
         });
-    
-        registerUser.save()
-                      .then(result => res.json({username: result.username}))
-                      .catch(err => console.log(err));
+
+        const result = await registerUser.save();
+
+        // registerUser.save()
+        //               .then(result => res.json({username: result.username}))
+        //               .catch(err => console.log(err));
+
+        const verifyEmailLink = `${process.env.backEndUrl}/verify/${result.username}/${verificationCode}`;
+
+        const oAuth2Client = new OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+        oAuth2Client.setCredentials({refresh_token: REFRESH_TOKEN});
+        const accessToken = await oAuth2Client.getAccessToken();
+  
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            type: 'OAuth2',
+            user: "ravikiransjce.code@gmail.com", //replace with your email
+            clientId: CLIENT_ID,
+            clientSecret: CLIENT_SECRET,
+            refreshToken: REFRESH_TOKEN,
+            accessToken: accessToken
+          },
+          tls : { rejectUnauthorized: false }
+        });
+  
+        const mailOptions = {
+          from: "<ravikriansjce.code@gmail.com>", //replace with your email
+          to: `${result.username}`, //replace with your email
+          subject: `EMAIL VERIFICATION`,
+          html: `<p> Please click the link to verify your account at u-bit.me or copy paste ${verifyEmailLink} in a browser window</p><br>
+                  <a href=${verifyEmailLink}></a>`,
+        };
+  
+        transporter.sendMail(mailOptions, function(error, info){
+          if (error) {
+            console.log(error);
+            return res.json({message: "User doesn't  exists"}) // if error occurs send error as response to client
+          }
+          else {
+            console.log('Email sent: ' + info.response);
+            return res.json({message:"Verification Email Sent Successfully"})//if mail is sent successfully send Sent successfully as response
+          }
+        });              
       } catch(err){
         console.error('error while hashing or storing user info into db',err);
       } 
@@ -88,6 +132,34 @@ app.post('/register',async (req, res) => {
   }
 });
 
+
+app.get('/verify/:username/:verificationCode', async (req, res) => {
+  const usernameSent = req.params.username;
+  const verificationCodeSent = req.params.verificationCode;
+  
+  const result = await RegisterUser.find({username: usernameSent});
+
+  const emailVerified = result[0].emailVerified;
+  const username = result[0].username;
+  const verificationCode = result[0].verificationCode;
+  console.log(username,verificationCode);
+
+  if(result.length === 0){
+    console.log("user doesn't exists");
+    return res.status(400).redirect(`${process.env.frontEndUrl}/register.html`);
+  } else if(emailVerified){
+    console.log("user exists and email is already verified");
+    return res.status(200).redirect(`${process.env.frontEndUrl}/login.html`);
+  } else if(verificationCode === verificationCodeSent){
+    console.log('Email verified');
+    const dbResult = await RegisterUser.updateOne({username: usernameSent}, {emailVerified: true});
+    return res.status(200).redirect(`${process.env.frontEndUrl}/login.html`);
+  } else {
+    console.log(result);
+    console.log('Unknown error');
+    return res.status(400).redirect(`${process.env.frontEndUrl}/register.html`);
+  }
+});
 // app.get("/test", (req, res) => {
 //   res
 //     .status(404)
@@ -197,9 +269,12 @@ app.post('/login', async (req, res) => {
   } else{
     const user = await RegisterUser.findOne({ username: req.body.username });
     if(!user){
-      res.status(400).json({message: "Invalid username or password"});
+      return res.status(400).json({message: "Invalid username or password"});
+    } else if(!user.emailVerified){
+      return res.status(400).json({message: "Please verify your email before login"});
     } else {
       const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
+      
       if(isPasswordValid){
         const token = jwt.sign({
                         exp: Math.floor(Date.now() / 1000) + (60 * 60),
@@ -208,9 +283,9 @@ app.post('/login', async (req, res) => {
         console.log('token',token);
         //res.cookie("jwt", token, {secure: true, httpOnly: true})
         // res.setHeader({'accessToken': accessToken});
-        res.json({username: user.username, token});
+        return res.json({username: user.username, token});
       } else {
-        res.status(400).json({message: "Invalid username or password"});
+        return res.status(400).json({message: "Invalid username or password"});
       }
     }
   }
